@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from pandasql import *
+
+#http://developer.nytimes.com/docs/article_search_api
     
 def dldata_key(output, num_pages, b_date, e_date, qu, fqu, sort_by, apikey):
     '''
