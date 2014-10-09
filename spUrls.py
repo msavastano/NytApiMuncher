@@ -10,6 +10,16 @@ from pandasql import *
     
 def dldata_key(output, num_pages, b_date, e_date, qu, fqu, sort_by, apikey):
     '''
+    params:
+    output : txt file to create and add data to
+    num_pages : the API retrieves pages of results, 10 per page
+    b_date : date to start search
+    e_date : date to end
+    qu : query search string - exact phrases in double quotes
+    fqu : filters by keys
+    sort_by : str 'oldest' 'newest'
+    apikey : authentication, see API documentation    
+    
     example:
     dldata('test.txt', 10, '19880601', '20000601', '"global warming"', 
     'section_name:("Front Page; U.S.")', 'oldest',
