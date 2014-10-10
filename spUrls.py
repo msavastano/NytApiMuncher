@@ -8,34 +8,39 @@ from pandasql import *
 
 #http://developer.nytimes.com/docs/article_search_api
     
-def dldata_key(output, num_pages, b_date, e_date, qu, fqu, sort_by, apikey):
+def dldata_key(output, b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York Times")'):
     '''
     params:
     output : txt file to create and add data to
-    num_pages : the API retrieves pages of results, 10 per page
     b_date : date to start search
     e_date : date to end
     qu : query search string - exact phrases in double quotes
-    fqu : filters by keys
+    fqu : filters by keys - optional - but will ignore any AP, Reuters, etc stories
     sort_by : str 'oldest' 'newest'
-    apikey : authentication, see API documentation    
+    apikey : authentication, see API documentation        
     
-    example:
-    dldata('test.txt', 10, '19880601', '20000601', '"global warming"', 
-    'section_name:("Front Page; U.S.")', 'oldest',
-    'f656samplesamplesamplesample91393')
     '''
     urlnytcc = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?'
     f = open(output, "w")
     countercc = 0
     keycc = '&api-key=' + apikey
     urlnytcc= urlnytcc+keycc    
-    numPagescc = num_pages
-    for p in range(1,numPagescc+1):
+    hits = 1    
+    while hits > 0 and countercc <= 100:
+        #the API retrieves pages of results, 10 per page, gets 1 page per url call
         params2cc = dict(begin_date=b_date, end_date=e_date, q=qu, fq=fqu, sort=sort_by, page=str(countercc))
         r2cc = requests.get(urlnytcc, params=params2cc).text
+        
+        getHits = json.loads(r2cc)
+        if hits == 1:
+            if 'response' in getHits.keys():
+                hits = getHits['response']['meta']['hits']
+            else:
+                print "EMPTY FILE _ NO HITS"
+        hits -= 10      
+        
         print >> f, r2cc 
-        countercc += 1  
+        countercc += 1          
     
     f.close()
     
@@ -59,9 +64,13 @@ def createDB(inputFile):
     main_dfst = []
     person_article = []
     
-    pagescct = open(inputFile)
+    pagescct = open(inputFile)    
     for line2 in pagescct:
         pagescc2 = json.loads(line2)
+        if 'response' not in pagescc2.keys():            
+            print "EOF"
+            break
+            
         if len(pagescc2['response']['docs']):
             for key in pagescc2['response']['docs']:            
                 
@@ -165,6 +174,10 @@ def concat_dfs(list_of_list_of_dfs):
     byline_concat = pd.DataFrame()
     person_concat = pd.DataFrame()
     main_concat = pd.DataFrame()
+    
+    if not list_of_list_of_dfs[0]:
+        print "No tables created - Empty list"
+        return {}    
     
     for ldf in list_of_list_of_dfs:
         author_article_concat = pd.concat([author_article_concat, ldf[0]], ignore_index=True).drop_duplicates()       
