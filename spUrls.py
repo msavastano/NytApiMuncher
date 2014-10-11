@@ -5,10 +5,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from pandasql import *
+import re
+import time
+
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 #http://developer.nytimes.com/docs/article_search_api
     
-def dldata_key(output, b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York Times")'):
+def dldata_key(b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York Times")'):
     '''
     params:
     output : txt file to create and add data to
@@ -20,28 +24,38 @@ def dldata_key(output, b_date, e_date, qu, sort_by, apikey, fqu='source:("The Ne
     apikey : authentication, see API documentation        
     
     '''
+    ran = 1
+    output = str(current_milli_time())
     urlnytcc = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?'
-    f = open(output, "w")
+    f = open(output+'.txt', "w")
     countercc = 0
     keycc = '&api-key=' + apikey
     urlnytcc= urlnytcc+keycc    
-    hits = 1    
+    hits = 1  
+    over1009 = False
     while hits > 0 and countercc <= 100:
         #the API retrieves pages of results, 10 per page, gets 1 page per url call
         params2cc = dict(begin_date=b_date, end_date=e_date, q=qu, fq=fqu, sort=sort_by, page=str(countercc))
         r2cc = requests.get(urlnytcc, params=params2cc).text
         
         getHits = json.loads(r2cc)
-        if hits == 1:
+        if countercc == 0:
             if 'response' in getHits.keys():
                 hits = getHits['response']['meta']['hits']
+                if hits > 1009:
+                    over1009 = True
             else:
                 print "EMPTY FILE _ NO HITS"
         hits -= 10      
         
         print >> f, r2cc 
-        countercc += 1          
-    
+        countercc += 1 
+        if over1009 == True:
+            if countercc == 101:
+                last_date = re.sub(r'[-]', '', getHits['response']['docs'][-1]['pub_date'][0:10])
+                dldata_key(last_date, e_date, qu, sort_by, apikey, fqu)
+                ran += 1
+                
     f.close()
     
 
