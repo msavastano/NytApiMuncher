@@ -14,4 +14,6 @@ v1.1 - now handles hits over 1000 - oveer 10 pages
 - needs to be empties manually
 - v1.+ to fix that
 
+- v1.2 fixed temp file problem
+
 - 2.0 to have query builder
