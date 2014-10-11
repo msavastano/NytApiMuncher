@@ -24,8 +24,15 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York T
     apikey : authentication, see API documentation        
     
     '''
+<<<<<<< HEAD
     ran = 1
     output = str(current_milli_time())
+=======
+    if not os.path.exists('temp'):
+        os.makedirs('temp')
+    ran = False
+    output = 'temp/'+str(current_milli_time())
+>>>>>>> improvements
     urlnytcc = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?'
     f = open(output+'.txt', "w")
     countercc = 0
@@ -54,9 +61,32 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York T
             if countercc == 101:
                 last_date = re.sub(r'[-]', '', getHits['response']['docs'][-1]['pub_date'][0:10])
                 dldata_key(last_date, e_date, qu, sort_by, apikey, fqu)
+<<<<<<< HEAD
                 ran += 1
+=======
+                ran = True
+            else:
+                ran = False
+>>>>>>> improvements
                 
     f.close()
+    dirListing = os.listdir(os.path.realpath('temp'))
+    editFiles = []
+    for item in dirListing:
+        if ".txt" in item:
+            editFiles.append(item)     
+   
+    with open('final.txt', 'w') as outfile:
+        for fname in editFiles:
+            with open('temp/'+fname) as infile:
+                for line in infile:
+                    outfile.write(line)    
+    
+    #if ran == True:                
+        #for f in editFiles:
+            #os.remove('temp/'+f)
+        
+    
     
 
 
@@ -100,39 +130,40 @@ def createDB(inputFile):
                     headline_kicker_dfst.append(list([key['_id'], key['headline']['kicker']]))                 
                 
                 #print "----PERSON TABLE----" 
-                if 'byline' in key.keys():                
-                    if  key['byline'] != None and 'person' in key['byline'].keys():                
-                        for byl in key['byline']['person']:
-                            if 'lastname' in byl.keys():
-                                temp_list = list()
-                                #temp_list.append(key['_id']) 
-                                temp_list.append(byl['firstname']+byl['lastname']) 
-                                if 'firstname' in byl.keys() and byl['firstname'] != '':                    
-                                    temp_list.append(byl['firstname'])
-                                else:
-                                    temp_list.append('')
-                                if 'middlename' in byl.keys() and byl['middlename'] != '':                     
-                                    temp_list.append(byl['middlename'])
-                                else:
-                                    temp_list.append('')
-                                if 'lastname' in byl.keys() and byl['lastname'] != '':                    
-                                    temp_list.append(byl['lastname'])
-                                else:
-                                    temp_list.append('')
-                                if 'organization' in byl.keys() and byl['organization'] != '':
-                                    temp_list.append(byl['organization'])
-                                else:
-                                    temp_list.append('')
-                                if 'role' in byl.keys() and byl['role'] != '':
-                                    temp_list.append(byl['role'])
-                                else:
-                                    temp_list.append('')
-                                if 'rank' in byl.keys() and byl['rank'] != '':
-                                   temp_list.append(byl['rank'])
-                                else:
-                                    temp_list.append('')
-                                person_dfst.append(temp_list) 
-                                person_article.append(list([byl['firstname']+byl['lastname'], key['_id']]))
+                if 'byline' in key.keys():  
+                    if type(key['byline']) == type(dict()):
+                        if  key['byline'] != None and 'person' in key['byline'].keys():                
+                            for byl in key['byline']['person']:
+                                if 'lastname' in byl.keys():
+                                    temp_list = list()
+                                    #temp_list.append(key['_id']) 
+                                    temp_list.append(byl['firstname']+byl['lastname']) 
+                                    if 'firstname' in byl.keys() and byl['firstname'] != '':                    
+                                        temp_list.append(byl['firstname'])
+                                    else:
+                                        temp_list.append('')
+                                    if 'middlename' in byl.keys() and byl['middlename'] != '':                     
+                                        temp_list.append(byl['middlename'])
+                                    else:
+                                        temp_list.append('')
+                                    if 'lastname' in byl.keys() and byl['lastname'] != '':                    
+                                        temp_list.append(byl['lastname'])
+                                    else:
+                                        temp_list.append('')
+                                    if 'organization' in byl.keys() and byl['organization'] != '':
+                                        temp_list.append(byl['organization'])
+                                    else:
+                                        temp_list.append('')
+                                    if 'role' in byl.keys() and byl['role'] != '':
+                                        temp_list.append(byl['role'])
+                                    else:
+                                        temp_list.append('')
+                                    if 'rank' in byl.keys() and byl['rank'] != '':
+                                       temp_list.append(byl['rank'])
+                                    else:
+                                        temp_list.append('')
+                                    person_dfst.append(temp_list) 
+                                    person_article.append(list([byl['firstname']+byl['lastname'], key['_id']]))
                 
                 #print "----BYLINE TABLE----" 
                 if 'byline' in key.keys() and key['byline'] != None:
