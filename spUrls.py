@@ -12,27 +12,28 @@ current_milli_time = lambda: int(round(time.time() * 1000))
 
 #http://developer.nytimes.com/docs/article_search_api
     
-def dldata_key(b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York Times")'):
+def dldata_key(b_date, e_date, qu, sort_by, apikey, ran, fqu='source:("The New York Times")'):
     '''
     params:
-    output : txt file to create and add data to
     b_date : date to start search
     e_date : date to end
     qu : query search string - exact phrases in double quotes
-    fqu : filters by keys - optional - but will ignore any AP, Reuters, etc stories
     sort_by : str 'oldest' 'newest'
-    apikey : authentication, see API documentation        
+    apikey : authentication, see API documentation 
+    ran : Set to True on initial run to clear out temp file,  False will add on to previous query, not recommended
+    fqu : filters by keys - optional - but will ignore any AP, Reuters, etc stories          
     
     '''
-<<<<<<< HEAD
-    ran = 1
-    output = str(current_milli_time())
-=======
     if not os.path.exists('temp'):
         os.makedirs('temp')
-    ran = False
+        
+    if ran == False:
+        delFiles = get_file_list()
+        for f in delFiles:
+            os.remove('temp/'+f)      
+        
+    
     output = 'temp/'+str(current_milli_time())
->>>>>>> improvements
     urlnytcc = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?'
     f = open(output+'.txt', "w")
     countercc = 0
@@ -60,33 +61,25 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, fqu='source:("The New York T
         if over1009 == True:
             if countercc == 101:
                 last_date = re.sub(r'[-]', '', getHits['response']['docs'][-1]['pub_date'][0:10])
-                dldata_key(last_date, e_date, qu, sort_by, apikey, fqu)
-<<<<<<< HEAD
-                ran += 1
-=======
-                ran = True
-            else:
-                ran = False
->>>>>>> improvements
+                dldata_key(last_date, e_date, qu, sort_by, apikey, True, fqu)                
                 
-    f.close()
-    dirListing = os.listdir(os.path.realpath('temp'))
-    editFiles = []
-    for item in dirListing:
-        if ".txt" in item:
-            editFiles.append(item)     
+    f.close()   
+    
+    editFiles = get_file_list()
    
     with open('final.txt', 'w') as outfile:
         for fname in editFiles:
             with open('temp/'+fname) as infile:
                 for line in infile:
-                    outfile.write(line)    
+                    outfile.write(line)      
     
-    #if ran == True:                
-        #for f in editFiles:
-            #os.remove('temp/'+f)
-        
-    
+def get_file_list():
+    dirListing = os.listdir(os.path.realpath('temp'))
+    editFiles = []
+    for item in dirListing:
+        if ".txt" in item:
+            editFiles.append(item) 
+    return editFiles
     
 
 
