@@ -1,3 +1,4 @@
+from __future__ import print_function
 import requests
 import sys
 import json
@@ -5,8 +6,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from pandasql import *
+import scipy.stats as stat
 import re
 import time
+import codecs
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -23,7 +26,9 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, ran, fqu='source:("The New Y
     ran : Set to True on initial run to clear out temp file,  False will add on to previous query, not recommended
     fqu : filters by keys - optional - but will ignore any AP, Reuters, etc stories          
     
+    returns : list of 7 df's from createDB()     
     '''
+    
     if not os.path.exists('temp'):
         os.makedirs('temp')
         
@@ -35,12 +40,13 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, ran, fqu='source:("The New Y
     
     output = 'temp/'+str(current_milli_time())
     urlnytcc = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?'
-    f = open(output+'.txt', "w")
+    f = codecs.open(output+'.txt', "w", encoding='utf-8')
     countercc = 0
     keycc = '&api-key=' + apikey
     urlnytcc= urlnytcc+keycc    
     hits = 1  
     over1009 = False
+    no_docs = False
     while hits > 0 and countercc <= 100:
         #the API retrieves pages of results, 10 per page, gets 1 page per url call
         params2cc = dict(begin_date=b_date, end_date=e_date, q=qu, fq=fqu, sort=sort_by, page=str(countercc))
@@ -50,13 +56,19 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, ran, fqu='source:("The New Y
         if countercc == 0:
             if 'response' in getHits.keys():
                 hits = getHits['response']['meta']['hits']
+                print( "HITS: " + str(hits))
                 if hits > 1009:
                     over1009 = True
+                elif hits == 0:                    
+                    no_docs = True
             else:
-                print "EMPTY FILE _ NO HITS"
+                print( "Bad File")
+                no_docs = True
         hits -= 10      
         
-        print >> f, r2cc 
+        #print >> f, r2cc 
+        print(r2cc,file=f)
+        
         countercc += 1 
         if over1009 == True:
             if countercc == 101:
@@ -67,11 +79,14 @@ def dldata_key(b_date, e_date, qu, sort_by, apikey, ran, fqu='source:("The New Y
     
     editFiles = get_file_list()
    
-    with open('final.txt', 'w') as outfile:
+    with codecs.open('final.txt', 'w', encoding='utf-8') as outfile:
         for fname in editFiles:
-            with open('temp/'+fname) as infile:
+            with codecs.open('temp/'+fname, encoding='utf-8') as infile:
                 for line in infile:
-                    outfile.write(line)      
+                    outfile.write(line)   
+    
+    if no_docs == False:
+        return createDB('final.txt')
     
 def get_file_list():
     dirListing = os.listdir(os.path.realpath('temp'))
@@ -101,11 +116,11 @@ def createDB(inputFile):
     main_dfst = []
     person_article = []
     
-    pagescct = open(inputFile)    
+    pagescct = codecs.open(inputFile,  encoding='utf-8')
     for line2 in pagescct:
         pagescc2 = json.loads(line2)
         if 'response' not in pagescc2.keys():            
-            print "EOF"
+            print( "EOF")
             break
             
         if len(pagescc2['response']['docs']):
@@ -167,6 +182,7 @@ def createDB(inputFile):
                 
                 #print "----MAIN TABLE----" 
                 main_dfst.append( list([key['_id'],
+                                key['headline']['main'],
                                 key['lead_paragraph'],
                                 key['web_url'],
                                 key['word_count'],
@@ -189,7 +205,7 @@ def createDB(inputFile):
                pd.DataFrame(headline_main_dfst, columns = ['ID','HEADLINE']),
                pd.DataFrame(person_dfst, columns = ['PERSON_ID','FIRSTNAME', 'MIDNAME', 'LASTNAME', 'ORGANIZATION', 'ROLE', 'RANK']).drop_duplicates(),
                pd.DataFrame(byline_dfst, columns= ['ID', 'BYLINE']),
-               pd.DataFrame(main_dfst, columns= ['ID', 'LEAD','URL','WRD_COUNT','SNPPT','ABST','SOURCE','DATE','DESK','DOC_TYPE','SECTION','SUBSEC','PAGE','TYPE_MTRL'])
+               pd.DataFrame(main_dfst, columns= ['ID', 'HEADLINE', 'LEAD','URL','WRD_COUNT','SNPPT','ABST','SOURCE','DATE','DESK','DOC_TYPE','SECTION','SUBSEC','PAGE','TYPE_MTRL'])
                ]   
                
 def concat_dfs(list_of_list_of_dfs):
@@ -213,8 +229,8 @@ def concat_dfs(list_of_list_of_dfs):
     person_concat = pd.DataFrame()
     main_concat = pd.DataFrame()
     
-    if not list_of_list_of_dfs[0]:
-        print "No tables created - Empty list"
+    if not list_of_list_of_dfs:
+        print ("No tables created - Empty list")
         return {}    
     
     for ldf in list_of_list_of_dfs:
@@ -244,6 +260,24 @@ def pysqldf(q):
     pandas DataFrame
     '''
     return sqldf(q, globals())
+    
+
+def date_calc(main_table):
+   '''
+   params:
+   main_table : table with all docs returned.  'main' in returned dictionary from concat_dfs
+    
+   returns : float percent of days with article
+   '''
+   main_table['DATE'] = pd.to_datetime(main_table['DATE'])
+   main_table=main_table.sort('DATE')
+   dateRange = main_table['DATE'][main_table.index[-1]] - main_table['DATE'][0]
+   rows = len(main_table.index)
+   print (rows)
+   print(dateRange.days)
+   return (float(rows) / dateRange.days) * 100
+   
+   
         
     
     
